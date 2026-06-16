@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flynth AI | Distributed LLM Gateway Control</title>
+  <!-- Google Fonts: Inter (main UI) & JetBrains Mono (monospaced logs) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <div class="app-layout">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="app-sidebar">
+      <div class="sidebar-brand">
+        <div class="logo-wrapper">
+          <!-- Geometric clean 2D vector logo representing Flynth AI -->
+          <svg class="brand-logo-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 6H26V12H12V16H22V22H12V28H6V6Z" fill="var(--brand-color)"/>
+            <rect x="12" y="16" width="10" height="6" fill="#a855f7" opacity="0.8"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h2>FLYNTH AI</h2>
+          <span>Grid Orchestrator</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-view="dashboard">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-view="topology">
+          <i class="fa-solid fa-network-wired"></i>
+          <span>Topology Grid</span>
+        </button>
+        <button class="nav-item" data-view="logs">
+          <i class="fa-solid fa-terminal"></i>
+          <span>Console Logs</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="connection-status-panel">
+          <span class="status-dot-pulse green" id="sidebar-status-dot"></span>
+          <div class="status-details">
+            <span class="status-title">GATEWAY STATUS</span>
+            <span class="status-desc text-success" id="sidebar-status-text">CONNECTED</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+      
+      <!-- Top Bar Header -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <h1 id="view-title">Control Dashboard</h1>
+          <p class="text-muted" id="view-desc">Real-time telemetry, routing tables, and MLOps sandbox.</p>
+        </div>
+        <div class="topbar-right">
+          <div class="system-health-pill">
+            <span class="pill-label">GRID HEALTH:</span>
+            <span class="pill-value text-accent" id="system-health">NOMINAL</span>
+          </div>
+          <button id="btn-reset" class="btn btn-secondary-outline">
+            <i class="fa-solid fa-arrows-rotate"></i> Reset Cluster
+          </button>
+        </div>
+      </header>
+
+      <!-- View Containers -->
+      <main class="content-container">
+
+        <!-- VIEW 1: DASHBOARD VIEW (Default) -->
+        <div class="view-panel" id="view-dashboard">
+          <div class="dashboard-grid-layout">
+            
+            <!-- Grid Card 1: Counters and Live telemetry -->
+            <div class="grid-span-2 telemetry-panel">
+              <div class="telemetry-grid">
+                
+                <div class="metric-card">
+                  <div class="metric-header">
+                    <span class="metric-label">THROUGHPUT</span>
+                    <i class="fa-solid fa-gauge-high text-success"></i>
+                  </div>
+                  <div class="metric-body">
+                    <h3 id="val-throughput" class="text-success">0.00</h3>
+                    <span class="metric-unit">tok/sec</span>
+                  </div>
+                </div>
+
+                <div class="metric-card">
+                  <div class="metric-header">
+                    <span class="metric-label">LATENCY</span>
+                    <i class="fa-solid fa-bolt text-info"></i>
+                  </div>
+                  <div class="metric-body">
+                    <h3 id="val-latency" class="text-info">0.00</h3>
+                    <span class="metric-unit">ms</span>
+                  </div>
+                </div>
+
+                <div class="metric-card">
+                  <div class="metric-header">
+                    <span class="metric-label">DATA DRIFT INDEX</span>
+                    <i class="fa-solid fa-chart-area text-danger"></i>
+                  </div>
+                  <div class="metric-body">
+                    <h3 id="val-drift" class="text-danger">0.000</h3>
+                    <span class="metric-unit">KL-Divergence</span>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Rolling charts -->
+              <div class="charts-row">
+                <div class="chart-wrapper-card">
+                  <div class="chart-card-header">
+                    <h4>Throughput & Latency Flow</h4>
+                  </div>
+                  <div class="chart-canvas-container">
+                    <canvas id="chart-throughput-latency"></canvas>
+                  </div>
+                </div>
+                <div class="chart-wrapper-card">
+                  <div class="chart-card-header">
+                    <h4>Concept Drift Index Analysis</h4>
+                  </div>
+                  <div class="chart-canvas-container">
+                    <canvas id="chart-drift"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grid Card 2: Interactive Prompt Playground -->
+            <div class="grid-card playground-card">
+              <div class="card-title-bar">
+                <h3>Prompt Pipeline & Guardrails</h3>
+                <span class="status-tag">Python API Engine</span>
+              </div>
+              <div class="playground-body">
+                <div class="form-control-group">
+                  <label for="prompt-input">SYSTEM GATEWAY INPUT</label>
+                  <textarea id="prompt-input" rows="3" placeholder="Enter query details... e.g. 'Audit route tables for latency bottleneck'"></textarea>
+                </div>
+                
+                <div class="playground-controls">
+                  <label class="custom-checkbox">
+                    <input type="checkbox" id="chk-toxic">
+                    <span class="checkbox-box"></span>
+                    <span class="checkbox-label text-pink">Simulate Toxic Payload</span>
+                  </label>
+                  <button id="btn-submit-chain" class="btn btn-primary-glow">
+                    <i class="fa-solid fa-play"></i> Run Audits
+                  </button>
+                </div>
+
+                <div class="pipeline-runtime-block">
+                  <label>PIPELINE PROCESSOR FLOW</label>
+                  <div class="pipeline-flow-steps">
+                    <div class="flow-step" id="node-gateway">
+                      <div class="flow-dot"></div>
+                      <span>Gateway</span>
+                      <span class="flow-time">-</span>
+                    </div>
+                    <div class="flow-connector" id="link-1"></div>
+                    <div class="flow-step" id="node-guardrail">
+                      <div class="flow-dot"></div>
+                      <span>Guardrails</span>
+                      <span class="flow-time">-</span>
+                    </div>
+                    <div class="flow-connector" id="link-2"></div>
+                    <div class="flow-step" id="node-cache">
+                      <div class="flow-dot"></div>
+                      <span>Cache</span>
+                      <span class="flow-time">-</span>
+                    </div>
+                    <div class="flow-connector" id="link-3"></div>
+                    <div class="flow-step" id="node-orchestrator">
+                      <div class="flow-dot"></div>
+                      <span>Router</span>
+                      <span class="flow-time">-</span>
+                    </div>
+                    <div class="flow-connector" id="link-4"></div>
+                    <div class="flow-step" id="node-inference">
+                      <div class="flow-dot"></div>
+                      <span>Inference</span>
+                      <span class="flow-time">-</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="response-container">
+                  <label>OUTBOUND GATEWAY RESPONSE</label>
+                  <div id="output-box" class="outbound-output-screen">Waiting for trace execution...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grid Card 3: Mini Topology Preview & Fault Injector -->
+            <div class="grid-card config-card">
+              <div class="card-title-bar">
+                <h3>Grid Control & Fault Injection</h3>
+                <span class="status-tag">Cluster Supervisor</span>
+              </div>
+              <div class="config-body">
+                <div class="fault-button-grid">
+                  <button id="btn-inject-oom" class="btn btn-danger-glow">
+                    <i class="fa-solid fa-circle-exclamation"></i> Crash Model Node-2
+                  </button>
+                  <button id="btn-recover" class="btn btn-success-glow">
+                    <i class="fa-solid fa-heart-pulse"></i> Recover Model Node-2
+                  </button>
+                </div>
+
+                <div class="bypass-toggles-grid">
+                  <label class="custom-switch">
+                    <div class="switch-info">
+                      <span class="switch-title">Stress Traffic Load</span>
+                      <span class="switch-desc">Scale requests to 195+ tok/sec</span>
+                    </div>
+                    <input type="checkbox" id="chk-stress">
+                    <span class="switch-slider"></span>
+                  </label>
+                  
+                  <label class="custom-switch">
+                    <div class="switch-info">
+                      <span class="switch-title">RoCE Congestion</span>
+                      <span class="switch-desc">Force standard TCP/IP fallback</span>
+                    </div>
+                    <input type="checkbox" id="chk-rdma-congest">
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grid Card 4: Micro Node status -->
+            <div class="grid-span-2 micro-nodes-card">
+              <div class="card-title-bar">
+                <h3>Grid Architecture Node Registry</h3>
+              </div>
+              <div class="nodes-registry-list">
+                <div class="registry-row" id="reg-gateway">
+                  <span class="reg-icon"><i class="fa-brands fa-python"></i></span>
+                  <span class="reg-name">API Gateway (FastAPI)</span>
+                  <span class="reg-port">Port 80</span>
+                  <span class="reg-status green">ONLINE</span>
+                </div>
+                <div class="registry-row" id="reg-orchestrator">
+                  <span class="reg-icon"><i class="fa-solid fa-network-wired"></i></span>
+                  <span class="reg-name">Go Load Balancer Router</span>
+                  <span class="reg-port">Port 8080</span>
+                  <span class="reg-status green">ONLINE</span>
+                </div>
+                <div class="registry-row" id="reg-redis">
+                  <span class="reg-icon"><i class="fa-solid fa-database"></i></span>
+                  <span class="reg-name">Redis Semantic Cache</span>
+                  <span class="reg-port">Port 6379</span>
+                  <span class="reg-status green">ONLINE</span>
+                </div>
+                <div class="registry-row" id="reg-node1">
+                  <span class="reg-icon"><i class="fa-solid fa-microchip"></i></span>
+                  <span class="reg-name">GPU Executor Node-1 (Llama-3)</span>
+                  <span class="reg-port">Port 5000</span>
+                  <span class="reg-status green">ONLINE</span>
+                </div>
+                <div class="registry-row" id="reg-node2">
+                  <span class="reg-icon"><i class="fa-solid fa-microchip"></i></span>
+                  <span class="reg-name">GPU Executor Node-2 (Mistral-7B)</span>
+                  <span class="reg-port">Port 5000</span>
+                  <span class="reg-status green" id="reg-node2-status">ONLINE</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- VIEW 2: FULL TOPOLOGY VIEW -->
+        <div class="view-panel hidden" id="view-topology">
+          <div class="full-topology-layout">
+            <div class="topology-sidebar">
+              <h3>Inter-Node RDMA Channels</h3>
+              <p class="text-muted text-small">Visual representation of data routing pathways. Concentric outer loops reflect ConnectX-7 HCA physical status. Double lines reflect direct fiber PCIe links.</p>
+              
+              <div class="route-details-card">
+                <span class="details-label">Active Connection Mode</span>
+                <h4 id="active-route-name" class="text-accent">RDMA BYPASS</h4>
+                <div class="route-desc-box" id="route-desc-details">
+                  Direct GPU-to-GPU memory transfer bypassing host CPU staging cycles and OS interrupts.
+                </div>
+              </div>
+
+              <div class="node-hover-details-panel" id="node-hover-panel">
+                <span class="hover-lbl">INSPECTING NODE</span>
+                <h4 id="hover-node-name">-</h4>
+                <div class="hover-stats-grid">
+                  <div class="hover-stat">
+                    <span>CPU Load</span>
+                    <span id="hover-stat-cpu">-</span>
+                  </div>
+                  <div class="hover-stat">
+                    <span>Memory</span>
+                    <span id="hover-stat-mem">-</span>
+                  </div>
+                  <div class="hover-stat">
+                    <span>State</span>
+                    <span id="hover-stat-state">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="topology-canvas-container">
+              <div class="canvas-legend">
+                <span><span class="legend-dot green"></span> Online</span>
+                <span><span class="legend-dot red"></span> Offline</span>
+                <span><span class="legend-dot cyan"></span> RDMA Direct</span>
+                <span><span class="legend-dot amber"></span> TCP Fallback</span>
+              </div>
+              <canvas id="rdma-canvas" width="680" height="420"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 3: FULL LOGS VIEW -->
+        <div class="view-panel hidden" id="view-logs">
+          <div class="full-logs-layout">
+            <div class="logs-header-bar">
+              <div class="log-tabs-list">
+                <button class="log-tab active" data-container="fastapi-gateway">FASTAPI GATEWAY</button>
+                <button class="log-tab" data-container="orchestrator">ORCHESTRATOR</button>
+                <button class="log-tab" data-container="redis">REDIS CACHE</button>
+                <button class="log-tab" data-container="model-node-1">MODEL NODE 1</button>
+                <button class="log-tab" data-container="model-node-2">MODEL NODE 2</button>
+                <button class="log-tab" data-container="rdma-simulator">RDMA SIMULATOR</button>
+              </div>
+              <div class="log-actions">
+                <label class="custom-checkbox compact">
+                  <input type="checkbox" id="chk-autoscroll" checked>
+                  <span class="checkbox-box"></span>
+                  <span class="checkbox-label">Auto-Scroll</span>
+                </label>
+                <button id="btn-clear-logs" class="btn btn-text">
+                  <i class="fa-solid fa-trash-can"></i> Clear
+                </button>
+              </div>
+            </div>
+
+            <div class="logs-terminal-viewport">
+              <div id="terminal-screen" class="terminal-body">
+                <!-- Log Rows will go here dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
